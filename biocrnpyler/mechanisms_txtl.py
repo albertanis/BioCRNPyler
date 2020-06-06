@@ -3,7 +3,7 @@ from .chemical_reaction_network import Species, Reaction, ComplexSpecies, Multim
 from .mechanisms_enzyme import *
 
 
-class Transcription_MM(MichalisMentenCopy):
+class Transcription_MM(MichalisMentenCopy, Transcription):
     """Michalis Menten Transcription
         G + RNAP <--> G:RNAP --> G+RNAP+mRNA
     """
@@ -20,8 +20,8 @@ class Transcription_MM(MichalisMentenCopy):
                 "'rnap' parameter must be a string or a Component with defined "
                 "get_species(), or a chemical_reaction_network.Species object")
 
-        MichalisMentenCopy.__init__(self=self, name=name,
-                                       mechanism_type="transcription")
+        MichalisMentenCopy.__init__(self=self, name=name, enzyme=self.rnap, mechanism_type='')
+        Transcription.__init__(self=self)
 
     def update_species(self, dna, transcript=None, return_rnap=True,
                        **keywords):
@@ -58,7 +58,7 @@ class Transcription_MM(MichalisMentenCopy):
         return rxns
 
 
-class Translation_MM(MichalisMentenCopy):
+class Translation_MM(MichalisMentenCopy, Translation):
     """ Michalis Menten Translation
         mRNA + Rib <--> mRNA:Rib --> mRNA + Rib + Protein
     """
@@ -75,7 +75,8 @@ class Translation_MM(MichalisMentenCopy):
                 "'ribosome' parameter must be a string, a Component with defined "
                 "get_species, or a chemical_reaction_network.species")
         MichalisMentenCopy.__init__(self=self, name=name,
-                                       mechanism_type="translation")
+                                       enzyme=self.ribosome, mechanism_type='')
+        Translation.__init__(self=self)
 
     def update_species(self, transcript, protein=None,
                        return_ribosome=True, **keywords):
@@ -111,7 +112,7 @@ class Translation_MM(MichalisMentenCopy):
         return rxns
 
 
-class Degredation_mRNA_MM(MichalisMenten):
+class Degredation_mRNA_MM(MichalisMenten, RNADegradation):
     """Michalis Menten mRNA Degredation by Endonucleases
        mRNA + Endo <--> mRNA:Endo --> Endo
     """
@@ -124,8 +125,8 @@ class Degredation_mRNA_MM(MichalisMenten):
         else:
             raise ValueError("'nuclease' parameter requires a "
                              "chemical_reaction_network.species or a string")
-        MichalisMenten.__init__(self=self, name=name,
-                                   mechanism_type="rna_degredation")
+        MichalisMenten.__init__(self=self, name=name, enzyme=self.nuclease, mechanism_type='')
+        RNADegradation.__init__(self=self)
 
     def update_species(self, rna, return_nuclease=True, **keywords):
         species = [rna]
@@ -148,9 +149,11 @@ class Degredation_mRNA_MM(MichalisMenten):
         rxns += MichalisMenten.update_reactions(self, self.nuclease, rna, Prod=None, complex=complex, kb=kb, ku=ku, kcat=kdeg)
         return rxns
 
-class SimpleTranscription(Mechanism):
-    def __init__(self, name = "simple_transcription", mechanism_type = "transcription"):
-        Mechanism.__init__(self, name=name, mechanism_type=mechanism_type)
+
+class SimpleTranscription(Mechanism, Transcription):
+    def __init__(self, name = "simple_transcription"):
+        Mechanism.__init__(self, name=name)
+        Transcription.__init__(self=self)
 
     def update_species(self, dna, transcript = None, **keywords):
         if transcript is None:
@@ -171,9 +174,11 @@ class SimpleTranscription(Mechanism):
         rxns = [Reaction(inputs = [dna], outputs = [dna, transcript], k = ktx)]
         return rxns
 
-class SimpleTranslation(Mechanism):
-    def __init__(self, name = "simple_translation", mechanism_type = "translation"):
-        Mechanism.__init__(self, name=name, mechanism_type=mechanism_type)
+
+class SimpleTranslation(Mechanism, Translation):
+    def __init__(self, name = "simple_translation"):
+        Mechanism.__init__(self, name=name)
+        Translation.__init__(self)
 
     def update_species(self, transcript, protein = None,  **keywords):
         if protein is None:
@@ -194,10 +199,11 @@ class SimpleTranslation(Mechanism):
         rxns = [Reaction(inputs = [transcript], outputs = [transcript, protein], k = ktl)]
         return rxns
 
-class OneStepGeneExpression(Mechanism):
-    def __init__(self, name="gene_expression",
-                 mechanism_type="transcription"):
-        Mechanism.__init__(self, name=name, mechanism_type=mechanism_type)
+
+class OneStepGeneExpression(Mechanism, Transcription):
+    def __init__(self, name="gene_expression"):
+        Mechanism.__init__(self, name=name)
+        Transcription.__init__(self)
 
     def update_species(self, dna, protein=None, transcript=None, **keywords):
         species = [dna]

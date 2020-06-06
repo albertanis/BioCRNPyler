@@ -31,6 +31,68 @@ from .chemical_reaction_network import Species, Reaction, ComplexSpecies, Multim
 from .component import Component
 import itertools as it
 
+
+class MechanismType(object):
+    def __init__(self):
+        pass
+
+
+class Transcription(MechanismType):
+    def __init__(self):
+        pass
+
+
+class Translation(MechanismType):
+    def __init__(self):
+        pass
+
+
+class Degradation(MechanismType):
+    def __init__(self):
+        pass
+
+
+class RNADegradation(MechanismType):
+    def __init__(self):
+        pass
+
+
+class MechanismList(list):
+    def __init__(self, *args, **kwargs):
+        super(MechanismList, self).__init__(args[0])
+
+    def __contains__(self, item):
+        if self.look_up_by_type(item):
+            return True
+        else:
+            return False
+
+    def __getitem__(self, key):
+        return self.look_up_by_type(key)
+
+    def __setitem__(self, key, value):
+        item, idx = self.look_up_by_type(key, get_idx=True)
+        if not item:
+            raise KeyError(f'key: {key} does not exist!')
+        super().__setitem__(idx,value)
+
+    def look_up_by_type(self, item, get_idx=False):
+        if issubclass(item, MechanismType):
+            curr_mech = None
+            idx = None
+            for idx, mech in enumerate(self):
+                if isinstance(mech, item):
+                    curr_mech = mech
+            if get_idx:
+                return curr_mech, idx
+            else:
+                return curr_mech
+        elif isinstance(item, Mechanism):
+            raise NotImplementedError
+        else:
+            raise TypeError(f'unknown type: {type(item)}')
+
+
 class Mechanism(object):
     """Mechanism class for core mechanisms
 
