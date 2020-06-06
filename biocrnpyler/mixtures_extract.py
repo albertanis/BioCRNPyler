@@ -4,7 +4,7 @@
 from warnings import warn
 from warnings import resetwarnings
 from .components_basic import DNA, RNA, Protein, ChemicalComplex
-from .mechanism import EmptyMechanism
+from .mechanism import EmptyMechanism, MechanismList
 from .mechanisms_txtl import Transcription_MM, Translation_MM, Degredation_mRNA_MM, OneStepGeneExpression, SimpleTranscription, SimpleTranslation
 from .mixture import Mixture
 from .chemical_reaction_network import Species, ChemicalReactionNetwork
@@ -96,14 +96,8 @@ class TxTlExtract(Mixture):
 
         mech_tx = Transcription_MM(rnap = self.rnap.get_species())
         mech_tl = Translation_MM(ribosome = self.ribosome.get_species())
-        mech_rna_deg = Degredation_mRNA_MM(nuclease = self.rnaase.get_species()) 
-
-
-        default_mechanisms = {
-            mech_tx.mechanism_type: mech_tx,
-            mech_tl.mechanism_type: mech_tl,
-            mech_rna_deg.mechanism_type: mech_rna_deg
-        }
+        mech_rna_deg = Degredation_mRNA_MM(nuclease = self.rnaase.get_species())
+        default_mechanisms = MechanismList((mech_tx, mech_tl, mech_rna_deg))
 
         default_components = [self.rnap, self.ribosome, self.rnaase]
         Mixture.__init__(self, name=name, default_mechanisms=default_mechanisms, mechanisms=mechanisms, 
