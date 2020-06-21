@@ -17,8 +17,9 @@ class Species(object):
 
     def __init__(self, name: str, material_type="", attributes=[],
                  initial_concentration=0):
-        self.name = name
-        self.material_type = material_type
+
+        self.name = self.check_name(name)
+        self.material_type = self.check_material_type(material_type)
         self.initial_concentration = initial_concentration
         if material_type == "complex":
             warn("species which are formed of two species or more should be "
@@ -30,6 +31,28 @@ class Species(object):
         if attributes is not None:
             for attribute in attributes:
                 self.add_attribute(attribute)
+
+     #Check that the string contains is alpha-numeric characters or "_" and that the first character is a letter. IF the name is a starts with a number, there must be a material type.
+    def check_material_type(self, material_type):
+
+        
+        if material_type in [None, ""] and self.name[0].isnumeric():
+            raise ValueError(f"species name: {self.name} contains a number as the first character and therefore requires a material_type.")
+        elif material_type == None:
+            return ""
+        elif (material_type.replace("_", "").isalnum() and material_type.replace("_", "")[0].isalpha()) or material_type == "":
+                return material_type
+        else:
+            raise ValueError(f"material_type {material_type} must be alpha-numeric and start with a letter.")
+
+    
+    #Check that the string contains only underscores and alpha-numeric characters
+    def check_name(self, name):
+        no_underscore_string = name.replace("_", "")
+        if no_underscore_string.isalnum():
+            return name
+        else:
+            raise ValueError(f"name attribute {name} must consist of letters, numbers, or underscores.")
 
     def __repr__(self):
         txt = ""
@@ -80,8 +103,7 @@ class Species(object):
         return txt
 
     def add_attribute(self, attribute: str):
-        assert isinstance(attribute, str) and attribute is not None, "Attribute: %s must be a string" % attribute
-
+        assert isinstance(attribute, str) and attribute is not None and attribute.isalnum(), "Attribute: %s must be an alpha-numeric string" % attribute
         self.attributes.append(attribute)
 
     def __eq__(self, other):
@@ -121,10 +143,18 @@ class ComplexSpecies(Species):
             raise ValueError("chemical_reaction_network.complex requires 2 "
                              "or more species in its constructor.")
 
-        self.species = [s if isinstance(s, Species) else Species(s) for s in species]
+
+        self.species = []
+        for s in  flatten_list(species):
+            if isinstance(s, Species):
+                self.species.append(s)
+            elif isinstance(s, str):
+                self.species.append(Species(s))
+            else:
+                raise ValueError("ComplexSpecies must be defined by (nested) list of Species (or subclasses thereof).")
+
+        
         self.species_set = list(set(self.species))
-        if False in [isinstance(s, Species) or isinstance(s, str) for s in self.species]:
-            raise ValueError("ComplexSpecies must be defined by list of Species (or subclasses thereof).")
 
         if name is not None:
             self.custom_name = True
@@ -144,8 +174,8 @@ class ComplexSpecies(Species):
                     name+=f"{s.name}_"
             name = name[:-1]
 
-        self.name = name
-        self.material_type = material_type
+        self.name = self.check_name(name)
+        self.material_type = self.check_material_type(material_type)
         self.initial_concentration = initial_concentration
 
         if attributes is None:
@@ -159,8 +189,9 @@ class ComplexSpecies(Species):
 
         self.attributes = attributes
 
+
     def __contains__(self,item):
-        if not item.isinstance(Species):
+        if not isinstance(item, Species):
             raise ValueError("Operator 'in' requires chemical_reaction_network.Species (or a subclass). Received: "+str(item))
         if item in self.species:
             #this is the base case
@@ -252,16 +283,23 @@ class OrderedComplexSpecies(ComplexSpecies):
             raise ValueError("chemical_reaction_network.complex requires 2 "
                              "or more species in its constructor.")
 
-        self.species = [s if isinstance(s, Species) else Species(s) for s in species]
-        if False in [isinstance(s, Species) or isinstance(s, str) for s in self.species]:
-            raise ValueError("ComplexSpecies must be defined by list of Species (or subclasses thereof) or strings.")
+
+        new_species = flatten_list(species)
+        self.species = []
+        for s in new_species:
+            if isinstance(s, Species):
+                self.species.append(s)
+            elif isinstance(s, str):
+                self.species.append(Species(s))
+            else:
+                raise ValueError("OrderedComplexSpecies must be defined by (nested) list of Species (or subclasses thereof).")
 
         if name is not None:
             self.custom_name = True
         elif name is None:
             self.custom_name = False
             name = ""
-            for s in species:
+            for s in self.species:
                 if isinstance(s, str):
                     s = Species(name = s)
                 if s.material_type not in ["complex", "ordered_complex", ""]:
@@ -270,8 +308,8 @@ class OrderedComplexSpecies(ComplexSpecies):
                     name+=f"{s.name}_"
             name = name[:-1]
 
-        self.name = name
-        self.material_type = material_type
+        self.name = self.check_name(name)
+        self.material_type = self.check_material_type(material_type)
         self.initial_concentration = initial_concentration
 
         if attributes is None:
@@ -427,8 +465,27 @@ class Reaction(object):
         self.propensity_params = propensity_params
 
         # Check that inputs and outputs only contain species
-        if any(not isinstance(s, Species) for s in inputs + outputs):
-            raise ValueError("A non-species object was used as a species.")
+        #if inputs or outputs is a nested list, flatten that list
+        new_inputs = []
+        for s in flatten_list(inputs):
+            if isinstance(s, Species):
+                new_inputs.append(s)
+            else:
+                raise ValueError(f"A non-species object was used as a species: {s}!")
+        inputs = new_inputs
+
+        new_outputs = []
+        for s in flatten_list(outputs):
+            if isinstance(s, Species):
+                new_outputs.append(s)
+            else:
+                raise ValueError(f"A non-species object was used as a species: {s}!")
+        outputs = new_outputs
+
+        #OLD CHECK
+        # Check that inputs and outputs only contain species
+        #if any(not isinstance(s, Species) for s in inputs + outputs):
+        #    raise ValueError("A non-species object was used as a species.")
 
         # internal representation of a reaction
 
@@ -792,12 +849,22 @@ class ChemicalReactionNetwork(object):
         for i in range(len(self.species)):
             self.species2index[str(self.species[i])] = i
 
+    def add_species(self, species, warnings = False):
+        if not isinstance(species, list):
+            species = [species]
+        self.species, self.reactions = ChemicalReactionNetwork.check_crn_validity(self.reactions, self.species+species, warnings=warnings)
+
+    def add_reactions(self, reactions, warnings = False):
+        if not isinstance(reactions, list):
+            reactions = [reactions]
+        self.species, self.reactions = ChemicalReactionNetwork.check_crn_validity(self.reactions+reactions, self.species, warnings=warnings)
+
     @staticmethod
     def check_crn_validity(reactions: List[Reaction], species: List[Species], warnings = False):
         # Check to make sure species are valid and only have a count of 1
         checked_species = []
         if not all(isinstance(s, Species) for s in species):
-            print(species)
+            print(f"A non-species object was used as a species: {species}!")
             raise ValueError("A non-species object was used as a species!")
 
         for s in species:
@@ -1024,127 +1091,88 @@ class ChemicalReactionNetwork(object):
 
     def simulate_with_bioscrape(self, timepoints, initial_condition_dict = {},
                                 stochastic = False, return_dataframe = True,
-                                safe = False, via_sbml = True):
-        from bioscrape.simulator import py_simulate_model
-        m = self.create_bioscrape_model()
-        m.set_species(initial_condition_dict)
-        if not stochastic and safe:
-            safe = False
-        result = py_simulate_model(timepoints, Model = m,
-                                   stochastic = stochastic,
-                                   return_dataframe = return_dataframe,
-                                   safe = safe)
+                                safe = False, **kwargs):
+        '''
+        Simulate CRN model with bioscrape (https://github.com/biocircuits/bioscrape).
+        Returns the data for all species as Pandas dataframe.
+        '''
+        try:
+            from bioscrape.simulator import py_simulate_model
+            m = self.create_bioscrape_model()
+            m.set_species(initial_condition_dict)
+            if not stochastic and safe:
+                safe = False
+            result = py_simulate_model(timepoints, Model = m,
+                                       stochastic = stochastic,
+                                       return_dataframe = return_dataframe,
+                                       safe = safe)
 
-        return result
+            return result
+
+        except ModuleNotFoundError:
+            print("Bioscrape not installed. Simulation via bioscrape is disabled.")
+            return False
 
 
     def simulate_with_bioscrape_via_sbml(self, timepoints, file = None,
                 initial_condition_dict = {}, return_dataframe = True,
-                stochastic = False):
-        import bioscrape
-
-        if file is None:
-            self.write_sbml_file(file_name ="temp_sbml_file.xml")
-            file_name = "temp_sbml_file.xml"
-        elif isinstance(file, str):
-            file_name = file
-        else:
-            file_name = file.name
-
-        m = bioscrape.types.Model(sbml_filename = file_name)
-        # m.write_bioscrape_xml('temp_bs'+ file_name + '.xml') # Uncomment if you want a bioscrape XML written as well.
-        m.set_species(initial_condition_dict)
-        result = bioscrape.simulator.py_simulate_model(timepoints, Model = m,
-                                            stochastic = stochastic,
-                                            return_dataframe = return_dataframe)
-
-
-        return result, m
-
-    def runsim_bioscrape(self, timepoints, file, simtype = "deterministic",
-                         species_to_plot = [], plot_show = True):
+                stochastic = False, **kwargs):
         '''
-        To simulate using bioscrape.
-        Returns the data for all species and bioscrape model object which can be
-        used to find out species indexes.
-        NOTE : Needs bioscrape package installed to simulate.
-        TODO : Returns result and model
+        Simulate CRN model with bioscrape via writing a SBML file temporarily.(https://github.com/biocircuits/bioscrape).
+        Returns the data for all species as Pandas dataframe.
         '''
-
-        import matplotlib.pyplot as plt
         try:
             import bioscrape
-        except:
-            print("Bioscrape package must be installed to run simulations "
-                  "using bioscrape.")
+            if file is None:
+                self.write_sbml_file(file_name ="temp_sbml_file.xml")
+                file_name = "temp_sbml_file.xml"
+            elif isinstance(file, str):
+                file_name = file
+            else:
+                file_name = file.name
 
-        if isinstance(file, str):
-            filename = file
-        else:
-            filename = file.name
-
-        m = bioscrape.sbmlutil.import_sbml(filename)
-        s = bioscrape.simulator.ModelCSimInterface(m)
-        if simtype == 'deterministic':
-            s.py_prep_deterministic_simulation()
-            s.py_set_initial_time(timepoints[0])
-            sim = bioscrape.simulator.DeterministicSimulator()
-            result = sim.py_simulate(s, timepoints)
-            result = result.py_get_result()
-            if plot_show:
-                if species_to_plot:
-                    for species in species_to_plot:
-                        ind = m.get_species_index(species)
-                        plt.plot(timepoints,result[:,ind])
-                    plt.title(str(species_to_plot) + ' vs time')
-                    plt.show()
-                else:
-                    plt.plot(timepoints, result)
-                    plt.show()
+            if 'sbml_warnings' in kwargs:
+                sbml_warnings = kwargs.get('sbml_warnings')
+            else:
+                sbml_warnings = False
+            m = bioscrape.types.Model(sbml_filename = file_name, sbml_warnings = sbml_warnings)
+            # m.write_bioscrape_xml('temp_bs'+ file_name + '.xml') # Uncomment if you want a bioscrape XML written as well.
+            m.set_species(initial_condition_dict)
+            result = bioscrape.simulator.py_simulate_model(timepoints, Model = m,
+                                                stochastic = stochastic,
+                                                return_dataframe = return_dataframe)
             return result, m
-        elif simtype == 'stochastic':
-            warnings.warn("For stochastic simulation of SBML models using "
-                          "bioscrape, it is highly recommended to NOT use "
-                          "reversible reactions as the SSA algorithm might not "
-                          "work for such cases.")
-            sim = bioscrape.simulator.SSASimulator()
-            s.py_set_initial_time(timepoints[0])
-            result = sim.py_simulate(s,timepoints)
-            result = result.py_get_result()
-            if plot_show:
-                if species_to_plot:
-                    for species in species_to_plot:
-                        ind = m.get_species_index(species)
-                        plt.plot(timepoints,result[:,ind])
-                    plt.title(str(species_to_plot) + ' vs time')
-                    plt.show()
-                else:
-                    plt.plot(timepoints, result)
-                    plt.show()
-            return result, m
-        else:
-            raise ValueError("Optional argument 'simtype' must be either "
-                             "deterministic or stochastic")
+        except ModuleNotFoundError:
+            print("Bioscrape not installed. Simulation via bioscrape is disabled.")
+            return False, False
+        
 
     def runsim_roadrunner(self, timepoints, filename, species_to_plot = []):
         '''
-        To simulate using roadrunner.
-        Returns the data for all species and bioscrape model object which can be
-        used to find out species indexes.
+        To simulate using roadrunner. 
+        Arguments:
+        timepoints: The array of time points to run the simulation for. 
+        filename: Name of the SBML file to simulate
+        Returns the results array as returned by RoadRunner. 
+        Refer to the libRoadRunner simulator library documentation 
+        for details on simulation results: http://libroadrunner.org/
         NOTE : Needs roadrunner package installed to simulate.
-        TODO : species_to_plot not implemented.
-        TODO : plot_show not implemented
-        TODO : bioscrape.convert_to_sbml not implemented (possibly available
-                in later versions of bioscrape)
         '''
         try:
             import roadrunner
         except:
-            print('roadrunner is not installed.')
-
+            raise ModuleNotFoundError
         rr = roadrunner.RoadRunner(filename)
-        if species_to_plot:
-            rr.timeCourseSelections = ['time', species_to_plot]
         result = rr.simulate(timepoints[0],timepoints[-1],len(timepoints))
         res_ar = np.array(result)
-        return res_ar[:,0],res_ar[:,1]
+        return res_ar
+
+#Helper function to flatten lists
+def flatten_list(in_list):
+    out_list = []
+    for element in in_list:
+        if isinstance(element, list):
+            out_list += flatten_list(element)
+        else:
+            out_list += [element]
+    return out_list
