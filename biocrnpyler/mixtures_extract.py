@@ -4,12 +4,9 @@
 from warnings import warn
 from warnings import resetwarnings
 from .components_basic import DNA, RNA, Protein, ChemicalComplex
-<<<<<<< HEAD
-=======
 from .mechanisms_enzyme import BasicCatalysis, MichalisMenten
 
 from .mechanisms_binding import One_Step_Binding
->>>>>>> 9e51d94d87a9136f35205cba29a3d7147adb6231
 from .mechanism import EmptyMechanism, MechanismList
 from .mechanisms_txtl import Transcription_MM, Translation_MM, Degredation_mRNA_MM, OneStepGeneExpression, SimpleTranscription, SimpleTranslation
 from .global_mechanism import Dilution
@@ -111,16 +108,11 @@ class TxTlExtract(Mixture):
 
         mech_tx = Transcription_MM(rnap = self.rnap.get_species())
         mech_tl = Translation_MM(ribosome = self.ribosome.get_species())
-<<<<<<< HEAD
-        mech_rna_deg = Degredation_mRNA_MM(nuclease = self.rnaase.get_species())
-        default_mechanisms = MechanismList((mech_tx, mech_tl, mech_rna_deg))
-=======
         mech_rna_deg = Degredation_mRNA_MM(nuclease = self.rnaase.get_species()) 
         mech_cat = MichalisMenten()
         mech_bind = One_Step_Binding()
 
         default_mechanisms = MechanismList((mech_tx, mech_tl, mech_rna_deg, mech_cat, mech_bind))
->>>>>>> 9e51d94d87a9136f35205cba29a3d7147adb6231
 
         default_components = [self.rnap, self.ribosome, self.rnaase]
         Mixture.__init__(self, name=name, default_mechanisms=default_mechanisms, mechanisms=mechanisms, 

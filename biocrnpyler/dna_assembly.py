@@ -141,11 +141,7 @@ class DNAassembly(DNA):
 
         if RNADegradation in self.mechanisms and self.promoter is not None:
             deg_mech = self.mechanisms[RNADegradation]
-<<<<<<< HEAD
-            species += deg_mech.update_species(rna = self.transcript)
-=======
             species += deg_mech.update_species(rna = self.transcript, component = self.promoter, part_id = self.transcript.name)
->>>>>>> 9e51d94d87a9136f35205cba29a3d7147adb6231
 
         # TODO raise a warning if there were duplicate species
         return list(set(species))

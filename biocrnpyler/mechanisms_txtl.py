@@ -2,12 +2,8 @@ from .mechanism import *
 from .chemical_reaction_network import Species, Reaction, ComplexSpecies, Multimer
 from .mechanisms_enzyme import *
 
-<<<<<<< HEAD
-class Transcription_MM(MichalisMentenCopyRXN, Transcription):
-=======
 
 class Transcription_MM(MichalisMentenCopy, Transcription):
->>>>>>> 9e51d94d87a9136f35205cba29a3d7147adb6231
     """Michalis Menten Transcription
         G + RNAP <--> G:RNAP --> G+RNAP+mRNA
     """
@@ -24,11 +20,7 @@ class Transcription_MM(MichalisMentenCopy, Transcription):
                 "'rnap' parameter must be a string or a Component with defined "
                 "get_species(), or a chemical_reaction_network.Species object")
 
-<<<<<<< HEAD
-        MichalisMentenCopyRXN.__init__(self=self, name=name, enzyme=self.rnap, mechanism_type='')
-=======
         MichalisMentenCopy.__init__(self=self, name=name, enzyme=self.rnap, mechanism_type='')
->>>>>>> 9e51d94d87a9136f35205cba29a3d7147adb6231
         Transcription.__init__(self=self)
 
     def update_species(self, dna, transcript=None, return_rnap=True,
@@ -66,11 +58,7 @@ class Transcription_MM(MichalisMentenCopy, Transcription):
         return rxns
 
 
-<<<<<<< HEAD
-class Translation_MM(MichalisMentenCopyRXN, Translation):
-=======
 class Translation_MM(MichalisMentenCopy, Translation):
->>>>>>> 9e51d94d87a9136f35205cba29a3d7147adb6231
     """ Michalis Menten Translation
         mRNA + Rib <--> mRNA:Rib --> mRNA + Rib + Protein
     """
@@ -86,11 +74,7 @@ class Translation_MM(MichalisMentenCopy, Translation):
             raise ValueError(
                 "'ribosome' parameter must be a string, a Component with defined "
                 "get_species, or a chemical_reaction_network.species")
-<<<<<<< HEAD
-        MichalisMentenCopyRXN.__init__(self=self, name=name,
-=======
         MichalisMentenCopy.__init__(self=self, name=name,
->>>>>>> 9e51d94d87a9136f35205cba29a3d7147adb6231
                                        enzyme=self.ribosome, mechanism_type='')
         Translation.__init__(self=self)
 
@@ -128,11 +112,7 @@ class Translation_MM(MichalisMentenCopy, Translation):
         return rxns
 
 
-<<<<<<< HEAD
-class Degredation_mRNA_MM(MichalisMentenRXN, RNADegradation):
-=======
 class Degredation_mRNA_MM(MichalisMenten, RNADegradation):
->>>>>>> 9e51d94d87a9136f35205cba29a3d7147adb6231
     """Michalis Menten mRNA Degredation by Endonucleases
        mRNA + Endo <--> mRNA:Endo --> Endo
     """
@@ -145,11 +125,7 @@ class Degredation_mRNA_MM(MichalisMenten, RNADegradation):
         else:
             raise ValueError("'nuclease' parameter requires a "
                              "chemical_reaction_network.species or a string")
-<<<<<<< HEAD
-        MichalisMentenRXN.__init__(self=self, name=name, enzyme=self.nuclease, mechanism_type='')
-=======
         MichalisMenten.__init__(self=self, name=name, enzyme=self.nuclease, mechanism_type='')
->>>>>>> 9e51d94d87a9136f35205cba29a3d7147adb6231
         RNADegradation.__init__(self=self)
 
     def update_species(self, rna, return_nuclease=True, **keywords):
